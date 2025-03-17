@@ -1,32 +1,55 @@
 using System;
 using Unity.VisualScripting;
 using UnityEngine;
+using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
 
 public class CollisionHandler : MonoBehaviour
 {
     [SerializeField] float LevelLoadDelay = 2f;
-    [SerializeField] AudioClip crash;
-    [SerializeField] AudioClip reach;
+    [SerializeField] AudioClip crashSFX;
+    [SerializeField] AudioClip successSFX;
+    [SerializeField] ParticleSystem successParticles;
+    [SerializeField] ParticleSystem crashParticles;
 
     AudioSource audioSource;
 
     bool isControllable = true;
+    bool isCollidable = true;
 
     void Start()
     {
         isControllable = true;
-        audioSource = GetComponent<AudioSource>();    
+        audioSource = GetComponent<AudioSource>();
+        
+    }
+
+    private void Update()
+    {
+        RespondToDebugKeys();
+    }
+
+    private void RespondToDebugKeys()
+    {
+        if(Keyboard.current.lKey.wasPressedThisFrame)
+        {
+            LoadNextLevel();
+        }
+
+        else if(Keyboard.current.cKey.wasPressedThisFrame)
+        {
+            isCollidable = !isCollidable;
+        }
     }
 
     private void OnCollisionEnter(Collision other)
     {
-        if(!isControllable) { return; }
+        if(!isControllable || !isCollidable) { return; }
 
         switch(other.gameObject.tag)
         {
             case "Friendly":
-                Debug.Log("We are friend!");
+                //Debug.Log("We are friend!");
                 break;
             case "Finish":
                 StartSuccessSequence();
@@ -42,7 +65,8 @@ public class CollisionHandler : MonoBehaviour
     {
         audioSource.Stop();
         isControllable = false;
-        audioSource.PlayOneShot(reach);
+        audioSource.PlayOneShot(successSFX);
+        successParticles.Play();
         GetComponent<Movement>().enabled = false;
         Invoke("LoadNextLevel", LevelLoadDelay);
     }
@@ -51,7 +75,8 @@ public class CollisionHandler : MonoBehaviour
     {
         audioSource.Stop();
         isControllable = false;
-        audioSource.PlayOneShot(crash);
+        audioSource.PlayOneShot(crashSFX);
+        crashParticles.Play();
         GetComponent<Movement>().enabled = false;
         Invoke("ReloadLevel", LevelLoadDelay);
     }
